@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>دومینو آنلاین</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0f0c;
+            color: #f0e8d8;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+        .app-container {
+            max-width: 450px;
+            width: 100%;
+            background: linear-gradient(165deg, rgba(26, 58, 42, 0.95), rgba(15, 30, 22, 0.98));
+            border-radius: 40px;
+            padding: 18px 16px 20px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(58, 107, 80, 0.3);
+        }
+        #authPage {
+            display: block;
+        }
+        #authPage.hidden {
+            display: none;
+        }
+        #gamePage {
+            display: none;
+        }
+        #gamePage.active {
+            display: block;
+        }
+        .auth-box {
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .auth-box .logo {
+            font-size: 3rem;
+            color: #f5d742;
+            margin-bottom: 8px;
+        }
+        .auth-box h1 {
+            font-size: 1.6rem;
+            color: #f5d742;
+            margin-bottom: 4px;
+        }
+        .auth-box p {
+            color: #8aaa94;
+            font-size: 0.85rem;
+            margin-bottom: 24px;
+        }
+        .auth-input {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 16px;
+            border: 2px solid rgba(58, 107, 80, 0.3);
+            background: rgba(15, 38, 27, 0.8);
+            color: #f0e8d8;
+            font-size: 1rem;
+            margin-bottom: 12px;
+            outline: none;
+            font-family: inherit;
+        }
+        .auth-input:focus {
+            border-color: #f5d742;
+        }
+        .btn-gold {
+            background: linear-gradient(135deg, #f5d742, #d4a828);
+            border: none;
+            color: #0a0f0c;
+            font-weight: 900;
+            padding: 14px;
+            border-radius: 16px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            width: 100%;
+            font-family: inherit;
+        }
+        .auth-switch {
+            margin-top: 16px;
+            color: #8aaa94;
+            font-size: 0.85rem;
+        }
+        .auth-switch span {
+            color: #f5d742;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .auth-error {
+            color: #ff6b6b;
+            font-size: 0.8rem;
+            margin: 8px 0;
+            min-height: 24px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 4px 14px 4px;
+            border-bottom: 2px solid rgba(45, 90, 62, 0.3);
+        }
+        .header .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: #f5d742;
+        }
+        .header .brand i {
+            font-size: 1.6rem;
+        }
+        .header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8rem;
+        }
+        .header .user-info .avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2d6b48, #1a402d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            border: 2px solid #f5d742;
+            cursor: pointer;
+        }
+        .header .user-info .name {
+            font-weight: bold;
+            color: #f0e8d8;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .online-count {
+            background: rgba(76, 217, 100, 0.15);
+            border: 1px solid rgba(76, 217, 100, 0.2);
+            color: #4cd964;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+        }
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin: 12px 0 10px;
+            background: rgba(13, 36, 25, 0.6);
+            border-radius: 30px;
+            padding: 4px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px 0;
+            border: none;
+            background: transparent;
+            color: #8aaa94;
+            font-size: 0.7rem;
+            font-weight: 700;
+            border-radius: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-family: inherit;
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #2d6b48, #1a402d);
+            color: #f5f0e0;
+        }
+        .page {
+            display: none;
+            animation: fadeSlide 0.4s ease;
+        }
+        .page.active {
+            display: block;
+        }
+        @keyframes fadeSlide {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .game-board {
+            background: rgba(29, 64, 45, 0.6);
+            border-radius: 24px;
+            padding: 14px;
+            min-height: 180px;
+            border: 1px solid rgba(47, 90, 65, 0.3);
+        }
+        .game-board .room-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 6px 10px 6px;
+            font-size: 0.7rem;
+            color: #b8d5c0;
+        }
+        .room-info .room-code {
+            background: rgba(245, 215, 66, 0.1);
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-weight: bold;
+            color: #f5d742;
+            font-size: 0.8rem;
+        }
+        .domino-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            padding: 6px 0;
+            min-height: 60px;
+        }
+        .domino {
+            background: linear-gradient(145deg, #fcf9f2, #f0ead8);
+            border-radius: 10px;
+            padding: 4px 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 0 #8b7a62, 0 6px 20px rgba(0, 0, 0, 0.4);
+            font-weight: bold;
+            color: #1f1f1f;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: 2px solid #e0d6c4;
+            font-size: 1.1rem;
+        }
+        .domino:hover {
+            transform: translateY(-2px);
+        }
+        .domino:active {
+            transform: scale(0.94);
+        }
+        .domino .divider {
+            width: 2px;
+            height: 34px;
+            background: #b8a58e;
+            border-radius: 2px;
+        }
+        .domino .dots {
+            display: grid;
+            grid-template-columns: repeat(3, 9px);
+            grid-template-rows: repeat(3, 9px);
+            gap: 2px;
+            width: 30px;
+            height: 30px;
+        }
+        .dot {
+            width: 7px;
+            height: 7px;
+            background: #1f1f1f;
+            border-radius: 50%;
+        }
+        .dot.empty {
+            background: transparent;
+        }
+        .hand-area {
+            margin-top: 12px;
+            background: rgba(20, 49, 33, 0.6);
+            border-radius: 20px;
+            padding: 12px;
+            border: 1px solid rgba(45, 90, 62, 0.2);
+        }
+        .hand-area .hand-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #b0cfb8;
+            padding-bottom: 8px;
+        }
+        .hand-area .hand-header .turn-indicator {
+            color: #f5d742;
+            font-weight: bold;
+        }
+        .btn {
+            border: none;
+            font-weight: 700;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #2d6b48, #1a402d);
+            color: #f0e8d8;
+        }
+        .btn-secondary {
+            background: rgba(95, 126, 107, 0.3);
+            color: #b0cfb8;
+            border: 1px solid rgba(95, 126, 107, 0.2);
+        }
+        .flex-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .flex-row .btn {
+            flex: 1;
+        }
+        .chat-container {
+            margin-top: 10px;
+        }
+        .chat-box {
+            background: rgba(13, 36, 25, 0.6);
+            border-radius: 16px;
+            padding: 10px 14px;
+            max-height: 80px;
+            overflow-y: auto;
+            font-size: 0.75rem;
+            border: 1px solid rgba(45, 90, 62, 0.15);
+        }
+        .chat-box .msg {
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(45, 90, 62, 0.05);
+        }
+        .chat-box .msg .user {
+            color: #f5d742;
+            font-weight: 700;
+        }
+        .chat-box .msg .system {
+            color: #8aaa94;
+            font-style: italic;
+        }
+        .chat-input {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 8px 16px;
+            border-radius: 30px;
+            border: 1px solid rgba(58, 107, 80, 0.2);
+            background: rgba(15, 38, 27, 0.6);
+            color: #f0e8d8;
+            outline: none;
+            font-size: 0.8rem;
+            font-family: inherit;
+        }
+        .chat-input input::placeholder {
+            color: #5a7a6a;
+        }
+        .chat-input button {
+            padding: 8px 16px;
+            border-radius: 30px;
+            border: none;
+            background: linear-gradient(135deg, #2d6b48, #1a402d);
+            color: #f0e8d8;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .profile-card {
+            background: rgba(28, 59, 42, 0.6);
+            border-radius: 24px;
+            padding: 24px;
+            text-align: center;
+            border: 1px solid rgba(45, 90, 62, 0.2);
+        }
+        .profile-card .avatar-big {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2d6b48, #1a402d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.8rem;
+            margin: 0 auto 12px;
+            border: 3px solid #f5d742;
+        }
+        .profile-card .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 16px 0;
+        }
+        .stats .stat-item {
+            text-align: center;
+        }
+        .stats .stat-item .num {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: #f5d742;
+        }
+        .stats .stat-item .label {
+            font-size: 0.65rem;
+            color: #9ab8a5;
+        }
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: rgba(26, 58, 42, 0.4);
+            border-radius: 14px;
+            margin: 4px 0;
+            border: 1px solid rgba(45, 90, 62, 0.15);
+        }
+        .leaderboard-item .rank {
+            font-weight: 900;
+            color: #f5d742;
+            width: 30px;
+            text-align: center;
+        }
+        .leaderboard-item .info {
+            flex: 1;
+        }
+        .leaderboard-item .info .name {
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+        .leaderboard-item .info .score {
+            font-size: 0.7rem;
+            color: #9ab8a5;
+        }
+        .leaderboard-item .avatar-sm {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3a6b55, #2a4f3f);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+        .tip-bar {
+            margin-top: 14px;
+            padding: 10px 16px;
+            background: rgba(28, 59, 42, 0.4);
+            border-radius: 30px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #c8dfd0;
+            border: 1px solid rgba(45, 90, 62, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+        .tip-bar i {
+            color: #f5d742;
+        }
+        .settings-group {
+            background: rgba(28, 59, 42, 0.4);
+            border-radius: 16px;
+            padding: 16px;
+            margin: 8px 0;
+            border: 1px solid rgba(45, 90, 62, 0.15);
+        }
+        .settings-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: #b8d5c0;
+            margin-bottom: 4px;
+        }
+        .settings-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(58, 107, 80, 0.2);
+            background: rgba(15, 38, 27, 0.6);
+            color: #f0e8d8;
+            font-size: 0.9rem;
+            outline: none;
+            font-family: inherit;
+        }
+        @media (max-width: 480px) {
+            .app-container {
+                padding: 12px 10px;
+                border-radius: 28px;
+            }
+            .domino {
+                font-size: 0.85rem;
+                padding: 3px 7px;
+                gap: 5px;
+            }
+            .domino .dots {
+                width: 24px;
+                height: 24px;
+                grid-template-columns: repeat(3, 7px);
+                grid-template-rows: repeat(3, 7px);
+            }
+            .dot {
+                width: 5px;
+                height: 5px;
+            }
+            .domino .divider {
+                height: 24px;
+            }
+            .tab-btn {
+                font-size: 0.6rem;
+                padding: 8px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- ===== صفحه ورود ===== -->
+        <div id="authPage">
+            <div class="auth-box">
+                <div class="logo">🎲</div>
+                <h1>دومینو آنلاین</h1>
+                <p>به جمع حرفه‌ای‌ها بپیوندید!</p>
+                <div id="authError" class="auth-error"></div>
+                <input type="text" id="authUsername" class="auth-input" placeholder="👤 نام کاربری" />
+                <input type="password" id="authPassword" class="auth-input" placeholder="🔒 رمز عبور (حداقل ۴ کاراکتر)" />
+                <button class="btn-gold" id="authSubmitBtn">ورود / ثبت‌نام</button>
+                <div class="auth-switch">
+                    <span id="authModeToggle">ثبت‌نام کنید</span>
+                </div>
+                <div style="margin-top:12px;font-size:0.7rem;color:#5a7a6a;">
+                    <i class="fas fa-wifi"></i>
+                    <span id="connectionStatus">در حال اتصال به سرور...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== صفحه بازی ===== -->
+        <div id="gamePage">
+            <div class="header">
+                <div class="brand">
+                    <i class="fas fa-dice"></i>
+                    <span>DominoPro</span>
+                </div>
+                <div class="user-info">
+                    <span class="online-count" id="onlineCount"><i class="fas fa-circle" style="color:#4cd964;font-size:0.5rem;"></i> ۰</span>
+                    <span class="name" id="userNameDisplay">کاربر</span>
+                    <div class="avatar" id="userAvatar">😎</div>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="tabGame"><i class="fas fa-gamepad"></i> بازی</button>
+                <button class="tab-btn" data-tab="tabProfile"><i class="fas fa-user"></i> پروفایل</button>
+                <button class="tab-btn" data-tab="tabLeaderboard"><i class="fas fa-trophy"></i> برترین‌ها</button>
+                <button class="tab-btn" data-tab="tabSettings"><i class="fas fa-cog"></i> تنظیمات</button>
+            </div>
+
+            <!-- ===== صفحه بازی ===== -->
+            <div id="tabGame" class="page active">
+                <div class="game-board">
+                    <div class="room-info">
+                        <span><i class="fas fa-hashtag"></i> کد اتاق: <span class="room-code" id="roomCode">---</span></span>
+                        <div class="players-list" id="playersList"></div>
+                    </div>
+                    <div id="table" class="domino-row">
+                        <div style="color:#6a8a7a;font-size:0.8rem;padding:20px 0;">
+                            <i class="fas fa-spinner fa-spin"></i> در حال انتظار برای شروع بازی...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hand-area">
+                    <div class="hand-header">
+                        <span><i class="fas fa-hand-paper"></i> دست شما (<span id="handCount">۰</span>)</span>
+                        <span class="turn-indicator" id="turnIndicator"><i class="fas fa-circle"></i> در انتظار...</span>
+                    </div>
+                    <div id="hand" class="domino-row"></div>
+                    <div class="flex-row">
+                        <button class="btn btn-primary" id="createRoomBtn"><i class="fas fa-plus-circle"></i> ایجاد اتاق</button>
+                        <button class="btn btn-secondary" id="joinRoomBtn"><i class="fas fa-sign-in-alt"></i> پیوستن</button>
+                        <button class="btn btn-secondary" id="startGameBtn" style="display:none;"><i class="fas fa-play"></i> شروع بازی</button>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-top:6px;">
+                        <input type="text" id="roomCodeInput" placeholder="کد اتاق را وارد کنید" style="flex:1;padding:8px 14px;border-radius:30px;border:1px solid rgba(58,107,80,0.2);background:rgba(15,38,27,0.6);color:#f0e8d8;outline:none;font-family:inherit;font-size:0.8rem;" />
+                        <button class="btn btn-secondary" id="joinWithCodeBtn" style="padding:8px 16px;font-size:0.7rem;">پیوستن</button>
+                    </div>
+                </div>
+
+                <div class="chat-container">
+                    <div class="chat-box" id="chatBox">
+                        <div class="msg"><span class="system">🤖 سیستم:</span> به بازی دومینو آنلاین خوش آمدید!</div>
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" id="chatInput" placeholder="💬 پیام..." />
+                        <button id="chatSendBtn"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== پروفایل ===== -->
+            <div id="tabProfile" class="page">
+                <div class="profile-card">
+                    <div class="avatar-big" id="profileAvatar">😎</div>
+                    <h2 id="profileName" style="color:#f5d742;">کاربر</h2>
+                    <p style="color:#9ab8a5;font-size:0.8rem;" id="profileLevel">سطح ۱ ⭐</p>
+                    <div class="stats">
+                        <div class="stat-item"><div class="num" id="profileWins">۰</div><div class="label">برد</div></div>
+                        <div class="stat-item"><div class="num" id="profileLosses">۰</div><div class="label">باخت</div></div>
+                        <div class="stat-item"><div class="num" id="profileScore">۰</div><div class="label">امتیاز</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== برترین‌ها ===== -->
+            <div id="tabLeaderboard" class="page">
+                <h3 style="margin:8px 0;color:#f5d742;text-align:center;"><i class="fas fa-crown"></i> ۱۰ نفر برتر</h3>
+                <div id="leaderboardList"></div>
+            </div>
+
+            <!-- ===== تنظیمات ===== -->
+            <div id="tabSettings" class="page">
+                <div class="settings-group">
+                    <label><i class="fas fa-users"></i> تعداد بازیکنان</label>
+                    <select id="playerCount"><option value="2">۲ نفر</option><option value="4">۴ نفر</option></select>
+                </div>
+                <div class="settings-group">
+                    <label><i class="fas fa-robot"></i> سختی حریف</label>
+                    <select id="difficulty"><option value="easy">آسان</option><option value="medium" selected>متوسط</option><option value="hard">سخت</option></select>
+                </div>
+                <button class="btn btn-primary" id="saveSettingsBtn" style="width:100%;"><i class="fas fa-save"></i> ذخیره تنظیمات</button>
+            </div>
+
+            <div class="tip-bar">
+                <i class="fas fa-lightbulb"></i>
+                <span class="tip-text" id="tipText">همیشه سعی کنید مهره‌های سنگین‌تر را زودتر بازی کنید!</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== کلاینت بازی دومینو =====
+        const socket = io();
+        let currentUser = null;
+        let currentRoom = null;
+        let myHand = [];
+        let gameStarted = false;
+
+        // ===== المان‌ها =====
+        const authPage = document.getElementById('authPage');
+        const gamePage = document.getElementById('gamePage');
+        const authError = document.getElementById('authError');
+        const authUsername = document.getElementById('authUsername');
+        const authPassword = document.getElementById('authPassword');
+        const authSubmitBtn = document.getElementById('authSubmitBtn');
+        const authModeToggle = document.getElementById('authModeToggle');
+        const connectionStatus = document.getElementById('connectionStatus');
+
+        let isLogin = false;
+
+        // ===== اتصال به سرور =====
+        socket.on('connect', () => {
+            connectionStatus.innerHTML = '✅ متصل به سرور';
+            connectionStatus.style.color = '#4cd964';
+        });
+
+        socket.on('disconnect', () => {
+            connectionStatus.innerHTML = '❌ قطع ارتباط با سرور';
+            connectionStatus.style.color = '#ff6b6b';
+        });
+
+        // ===== احراز هویت =====
+        authModeToggle.addEventListener('click', () => {
+            isLogin = !isLogin;
+            authModeToggle.textContent = isLogin ? 'ثبت‌نام کنید' : 'وارد شوید';
+            authSubmitBtn.textContent = isLogin ? 'ورود' : 'ثبت‌نام';
+            authError.textContent = '';
+        });
+
+        authSubmitBtn.addEventListener('click', async () => {
+            const username = authUsername.value.trim();
+            const password = authPassword.value.trim();
+
+            if (!username || username.length < 3) {
+                authError.textContent = '❌ نام کاربری باید حداقل ۳ کاراکتر باشد.';
+                return;
+            }
+            if (!password || password.length < 4) {
+                authError.textContent = '❌ رمز عبور باید حداقل ۴ کاراکتر باشد.';
+                return;
+            }
+
+            const endpoint = isLogin ? '/api/login' : '/api/register';
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    authError.textContent = '❌ ' + data.error;
+                    return;
+                }
+
+                currentUser = data.user;
+                currentUser.username = username;
+                authPage.classList.add('hidden');
+                gamePage.classList.add('active');
+
+                socket.emit('user-join', username);
+                updateProfile();
+                loadLeaderboard();
+                startTips();
+
+            } catch (err) {
+                authError.textContent = '❌ خطا در اتصال به سرور: ' + err.message;
+            }
+        });
+
+        // ===== Socket events =====
+        socket.on('system-message', (msg) => {
+            addChatMessage('سیستم', msg, 'system');
+        });
+
+        socket.on('online-users', (users) => {
+            document.getElementById('onlineCount').innerHTML =
+                `<i class="fas fa-circle" style="color:#4cd964;font-size:0.5rem;"></i> ${users.length}`;
+        });
+
+        socket.on('room-created', ({ roomId }) => {
+            currentRoom = roomId;
+            document.getElementById('roomCode').textContent = roomId;
+            addChatMessage('سیستم', `🏠 اتاق ${roomId} ایجاد شد!`, 'system');
+            document.getElementById('startGameBtn').style.display = 'block';
+        });
+
+        socket.on('room-update', (room) => {
+            if (!room) return;
+            currentRoom = room.id;
+            document.getElementById('roomCode').textContent = room.id;
+
+            if (room.table && room.table.length > 0) {
+                renderTable(room.table);
+            }
+
+            if (room.hands && room.hands[currentUser?.username]) {
+                myHand = room.hands[currentUser.username];
+                renderHand(myHand);
+                document.getElementById('handCount').textContent = myHand.length;
+            }
+
+            if (room.players && room.players[room.currentPlayer]) {
+                const turnUser = room.players[room.currentPlayer];
+                const indicator = document.getElementById('turnIndicator');
+                if (turnUser === currentUser?.username) {
+                    indicator.innerHTML = '<i class="fas fa-circle" style="color:#4cd964;"></i> نوبت شماست';
+                } else {
+                    indicator.innerHTML = `<i class="fas fa-circle" style="color:#f5a623;"></i> نوبت ${turnUser}`;
+                }
+            }
+
+            if (room.gameStarted) {
+                gameStarted = true;
+                document.getElementById('startGameBtn').style.display = 'none';
+            }
+        });
+
+        socket.on('game-started', () => {
+            gameStarted = true;
+            document.getElementById('startGameBtn').style.display = 'none';
+            addChatMessage('سیستم', '🎮 بازی شروع شد!', 'system');
+        });
+
+        socket.on('turn-change', ({ currentPlayer }) => {
+            const indicator = document.getElementById('turnIndicator');
+            if (currentPlayer === currentUser?.username) {
+                indicator.innerHTML = '<i class="fas fa-circle" style="color:#4cd964;"></i> نوبت شماست';
+            } else {
+                indicator.innerHTML = `<i class="fas fa-circle" style="color:#f5a623;"></i> نوبت ${currentPlayer}`;
+            }
+        });
+
+        socket.on('game-over', ({ winner }) => {
+            addChatMessage('سیستم', `🏆 ${winner} برنده بازی شد!`, 'system');
+            document.getElementById('turnIndicator').innerHTML = `🏆 ${winner} برنده شد!`;
+            if (winner === currentUser?.username) {
+                updateUserStats(true);
+            } else if (currentUser) {
+                updateUserStats(false);
+            }
+            loadLeaderboard();
+            updateProfile();
+        });
+
+        socket.on('chat-message', ({ username, message }) => {
+            addChatMessage(username, message, '');
+        });
+
+        socket.on('error', (msg) => {
+            addChatMessage('⚠️ خطا', msg, 'system');
+        });
+
+        // ===== دکمه‌ها =====
+        document.getElementById('createRoomBtn').addEventListener('click', () => {
+            if (!currentUser) return;
+            socket.emit('create-room');
+        });
+
+        document.getElementById('joinWithCodeBtn').addEventListener('click', () => {
+            const code = document.getElementById('roomCodeInput').value.trim();
+            if (code) {
+                socket.emit('join-room', code);
+                document.getElementById('roomCodeInput').value = '';
+            }
+        });
+
+        document.getElementById('startGameBtn').addEventListener('click', () => {
+            if (currentRoom) {
+                socket.emit('start-game');
+            }
+        });
+
+        // ===== رندر =====
+        function renderDots(n) {
+            const patterns = {
+                0: [],
+                1: [[1, 1]],
+                2: [[0, 0], [2, 2]],
+                3: [[0, 0], [1, 1], [2, 2]],
+                4: [[0, 0], [0, 2], [2, 0], [2, 2]],
+                5: [[0, 0], [0, 2], [1, 1], [2, 0], [2, 2]],
+                6: [[0, 0], [0, 2], [1, 0], [1, 2], [2, 0], [2, 2]]
+            };
+            const pts = patterns[n] || [];
+            let html = '<div class="dots">';
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    const filled = pts.some(([pr, pc]) => pr === r && pc === c);
+                    html += `<div class="dot ${filled ? '' : 'empty'}"></div>`;
+                }
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function createDominoElement(l, r, clickable = true, index = -1) {
+            const div = document.createElement('div');
+            div.className = 'domino';
+            if (clickable && gameStarted) div.style.cursor = 'pointer';
+            div.innerHTML = `
+                <div class="half">${renderDots(l)}</div>
+                <div class="divider"></div>
+                <div class="half">${renderDots(r)}</div>
+            `;
+            if (clickable && gameStarted) {
+                div.addEventListener('click', () => {
+                    if (index >= 0) playTile(index);
+                });
+            }
+            return div;
+        }
+
+        function renderTable(tiles) {
+            const el = document.getElementById('table');
+            el.innerHTML = '';
+            if (!tiles || tiles.length === 0) {
+                el.innerHTML = '<div style="color:#6a8a7a;font-size:0.8rem;padding:10px 0;">میز خالی است</div>';
+                return;
+            }
+            tiles.forEach(([l, r]) => {
+                el.appendChild(createDominoElement(l, r, false));
+            });
+        }
+
+        function renderHand(hand) {
+            const el = document.getElementById('hand');
+            el.innerHTML = '';
+            if (!hand || hand.length === 0) {
+                el.innerHTML = '<div style="color:#6a8a7a;font-size:0.8rem;padding:4px 0;">دست شما خالی است</div>';
+                return;
+            }
+            hand.forEach(([l, r], i) => {
+                el.appendChild(createDominoElement(l, r, true, i));
+            });
+        }
+
+        function playTile(index) {
+            if (!currentRoom || !gameStarted) {
+                addChatMessage('سیستم', '⏳ بازی شروع نشده است!', 'system');
+                return;
+            }
+            const tile = myHand[index];
+            if (!tile) return;
+            socket.emit('play-tile', { tile, index });
+        }
+
+        // ===== چت =====
+        function addChatMessage(sender, text, type) {
+            const box = document.getElementById('chatBox');
+            const msg = document.createElement('div');
+            msg.className = 'msg';
+            let displayName = sender;
+            let cls = '';
+            if (type === 'system') {
+                cls = 'system';
+            }
+            msg.innerHTML = `<span class="user ${cls}">${displayName}:</span> ${text}`;
+            box.appendChild(msg);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        document.getElementById('chatSendBtn').addEventListener('click', sendChat);
+        document.getElementById('chatInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendChat();
+        });
+
+        function sendChat() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text || !currentUser) return;
+            socket.emit('chat-message', text);
+            addChatMessage(currentUser.username, text, '');
+            input.value = '';
+        }
+
+        // ===== پروفایل =====
+        function updateProfile() {
+            if (!currentUser) return;
+            document.getElementById('profileName').textContent = currentUser.username;
+            document.getElementById('profileAvatar').textContent = currentUser.avatar || '😎';
+            document.getElementById('userNameDisplay').textContent = currentUser.username;
+            document.getElementById('userAvatar').textContent = currentUser.avatar || '😎';
+
+            document.getElementById('profileWins').textContent = currentUser.wins || 0;
+            document.getElementById('profileLosses').textContent = currentUser.losses || 0;
+            document.getElementById('profileScore').textContent = currentUser.score || 0;
+        }
+
+        // ===== برترین‌ها =====
+        async function loadLeaderboard() {
+            try {
+                const res = await fetch('/api/leaderboard');
+                const data = await res.json();
+                const container = document.getElementById('leaderboardList');
+                container.innerHTML = '';
+                if (data.length === 0) {
+                    container.innerHTML =
+                        '<div style="text-align:center;color:#8aaa94;padding:20px;">هنوز کاربری ثبت‌نام نکرده است.</div>';
+                    return;
+                }
+                data.forEach((item, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'leaderboard-item';
+                    div.innerHTML = `
+                        <div class="rank">#${idx + 1}</div>
+                        <div class="avatar-sm">${item.avatar || '😎'}</div>
+                        <div class="info">
+                            <div class="name">${item.username}</div>
+                            <div class="score">⭐ ${item.score} امتیاز • 🏆 ${item.wins || 0} برد</div>
+                        </div>
+                        ${idx === 0 ? '<i class="fas fa-crown" style="color:#f5d742;font-size:1.4rem;"></i>' : ''}
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (err) {
+                console.error('خطا:', err);
+            }
+        }
+
+        // ===== آمار =====
+        async function updateUserStats(won) {
+            if (!currentUser) return;
+            try {
+                const res = await fetch('/api/update-stats', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: currentUser.username, won })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    currentUser = { ...currentUser, ...data.user };
+                    updateProfile();
+                }
+            } catch (err) {
+                console.error('خطا:', err);
+            }
+        }
+
+        // ===== نکات =====
+        const TIPS = [
+            "همیشه سعی کنید مهره‌های سنگین‌تر را زودتر بازی کنید!",
+            "اگر چند راه دارید، مسیری رو انتخاب کنید که حریف رو محدود کنه.",
+            "به مهره‌هایی که حریف نگذاشته دقت کنید.",
+            "بازی کردن مهره‌های دوتایی می‌تونه استراتژیک باشه.",
+            "همیشه به دو سر میز توجه کنید، نه فقط یک سمت."
+        ];
+
+        function startTips() {
+            const tipEl = document.getElementById('tipText');
+            let idx = Math.floor(Math.random() * TIPS.length);
+            setInterval(() => {
+                idx = (idx + 1) % TIPS.length;
+                tipEl.textContent = TIPS[idx];
+            }, 12000);
+        }
+
+        // ===== تب‌ها =====
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById(btn.dataset.tab).classList.add('active');
+                if (btn.dataset.tab === 'tabLeaderboard') loadLeaderboard();
+                if (btn.dataset.tab === 'tabProfile') updateProfile();
+            });
+        });
+
+        // ===== ورود با Enter =====
+        [authUsername, authPassword].forEach(input => {
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') authSubmitBtn.click();
+            });
+        });
+
+        console.log('🎲 دومینو آنلاین کلاینت راه‌اندازی شد!');
+    </script>
+</body>
+</html>
