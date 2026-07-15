@@ -1,0 +1,17 @@
+{
+  "name": "domino-online",
+  "version": "1.0.0",
+  "description": "بازی دومینو آنلاین - کاملاً رایگان",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "cors": "^2.8.5"
+  },
+  "license": "MIT",
+  "keywords": ["domino", "game", "online", "multiplayer"],
+  "author": "Your Name"
+}
